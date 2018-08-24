@@ -1,6 +1,7 @@
 #include <cstdbool>
 #include "wv_h264cc.h"
 #include "wv_expGolobm.h"
+#include "wv_h264parser.h"
 
 /*****************************************************************************
 Function:     h264_printNal
@@ -346,6 +347,17 @@ bool h264_InitParser(wv_encodedFrame * inputFrame)
 		return false;
 	}
 
+	if(NULL != inputFrame)
+	{
+		free(inputFrame->ctx);
+	}
+
+	if(NULL == inputFrame->ctx)
+	{
+		inputFrame->ctx = malloc(sizeof(WV_H264PARSER_st));	
+	}
+	
+
 	return true;
 }
 
@@ -357,6 +369,11 @@ bool h264_DelParser(wv_encodedFrame * inputFrame)
 	{
 		printf("input parameters is invalid!\n");
 		return false;
+	}
+
+	if(NULL != inputFrame)
+	{
+		free(inputFrame->ctx);
 	}
 
 	return true;

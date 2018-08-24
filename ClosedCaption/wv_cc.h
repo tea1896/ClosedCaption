@@ -11,7 +11,7 @@ typedef struct
 	WV_ENCODE_TYPE encodeType;
 	uint8_t * data;
 	int32_t size;
-	uint8_t * parser;
+	uint8_t * ctx;
 }wv_encodedFrame;
 
 typedef struct CCFuncMap

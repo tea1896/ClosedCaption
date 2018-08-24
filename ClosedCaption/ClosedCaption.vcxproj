@@ -58,6 +58,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\props\ffmpeg.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -71,6 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)..\output</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -146,6 +148,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="mp2cc.c" />
+    <ClCompile Include="wv_cc.c" />
+    <ClCompile Include="wv_expGolobm.c" />
+    <ClCompile Include="wv_ffmpeg4cc.c" />
+    <ClCompile Include="wv_h264bits.c" />
+    <ClCompile Include="wv_h264cc.c" />
+    <ClCompile Include="wv_h264nal.c" />
+    <ClCompile Include="wv_h264parser.c" />
+    <ClCompile Include="wv_h264pps.c" />
+    <ClCompile Include="wv_h264sps.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mp2cc.h" />
+    <ClInclude Include="wv_cc.h" />
+    <ClInclude Include="wv_expGolobm.h" />
+    <ClInclude Include="wv_ffmpeg4cc.h" />
+    <ClInclude Include="wv_h264Bits.h" />
+    <ClInclude Include="wv_h264cc.h" />
+    <ClInclude Include="wv_h264nal.h" />
+    <ClInclude Include="wv_h264parser.h" />
+    <ClInclude Include="wv_h264pps.h" />
+    <ClInclude Include="wv_h264sps.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

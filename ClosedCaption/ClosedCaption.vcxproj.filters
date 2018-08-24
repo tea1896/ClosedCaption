@@ -14,4 +14,71 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_h264sps.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_h264pps.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_h264parser.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_h264nal.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_h264cc.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_h264bits.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_ffmpeg4cc.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_expGolobm.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="wv_cc.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="mp2cc.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="wv_h264sps.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264pps.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264parser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264nal.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264cc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264Bits.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_ffmpeg4cc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_expGolobm.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_cc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mp2cc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -241,3 +241,52 @@ bool wvcc_getPictureOrder(wv_encodedFrame * inputFrame, uint32_t * pictureorder)
 	return true;
 }
 
+bool wvcc_InitParserCtx(wv_encodedFrame * inputFrame)
+{
+	WV_CC_Handle * pstCCHandler = NULL;
+
+	/* verity input parameters */
+	if (NULL == inputFrame)
+	{
+		printf("input parameters is invalid!\n");
+		return false;
+	}
+
+	inputFrame->ctxIsInit = false;
+	inputFrame->ctx = NULL;
+
+	return true;
+}
+
+bool wvcc_DelParserCtx(wv_encodedFrame * inputFrame)
+{
+	WV_CC_Handle * pstCCHandler = NULL;
+
+	/* verity input parameters */
+	if (NULL == inputFrame)
+	{
+		printf("input parameters is invalid!\n");
+		return false;
+	}
+
+	/* find handler */
+	pstCCHandler = wvcc_FindHandler(inputFrame->encodeType);
+	if(NULL == pstCCHandler)
+	{
+		printf("can't find corresponded handler!\n");
+		return false;
+	}
+
+	/* init context of parser */
+	inputFrame->ctxIsInit = false;
+	if(!(pstCCHandler->wvcc_DelFrameCtx(inputFrame)))
+	{
+		printf("can't init	context of parser!\n");
+		return false;
+	}
+
+	return true;
+}
+
+
+

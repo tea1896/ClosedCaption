@@ -32,8 +32,8 @@ int32_t Parse_as_seq_param_set(WV_H264SPS * sps, uint8_t * m_pSODB)
 	uint8_t  sodbBitPosition = 0;
 	uint32_t sodbBypePosition = 3;
 
-	uint8_t  bitPosition = &sodbBitPosition;
-	uint32_t bypePosition = &sodbBypePosition;
+	uint8_t  * bitPosition = &sodbBitPosition;
+	uint32_t * bypePosition = &sodbBypePosition;
 	uint32_t flags = 0;
 
 	profile_idc = m_pSODB[0];

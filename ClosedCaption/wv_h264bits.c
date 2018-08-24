@@ -7,7 +7,7 @@ int Get_bit_at_position(UINT8 *buf, UINT32  * pbytePosition, UINT8  * pbitPositi
 	UINT8 mask = 0, val = 0;
 
 	UINT32 bytePosition = *pbytePosition;
-	UINT32 bitPosition = *pbitPosition;
+	UINT8 bitPosition = *pbitPosition;
 
 	mask = 1 << (7 - bitPosition);
 	val = ((buf[bytePosition] & mask) != 0);

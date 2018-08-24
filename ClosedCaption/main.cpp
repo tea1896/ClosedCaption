@@ -48,6 +48,8 @@ int getCC(char * inputFileName,  char * outputFileName)
 
 	av_dump_format(ifmt_ctx, 0, inputFileName, 0);
 
+	wvcc_InitParserCtx(&inputFrame);
+
 	while (1) {
 		ret = av_read_frame(ifmt_ctx, &pkt);
 		if (ret < 0)
@@ -95,6 +97,7 @@ int getCC(char * inputFileName,  char * outputFileName)
 	}
 end:
 
+	wvcc_DelParserCtx(&inputFrame);
 	avformat_close_input(&ifmt_ctx);
 	out.close();
 	//system("pause");

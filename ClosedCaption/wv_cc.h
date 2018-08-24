@@ -11,6 +11,8 @@ typedef struct
 	WV_ENCODE_TYPE encodeType;
 	uint8_t * data;
 	int32_t size;
+
+	bool  ctxIsInit;
 	uint8_t * ctx;
 }wv_encodedFrame;
 
@@ -72,5 +74,8 @@ bool wvcc_insertCCContent(wv_encodedFrame * pstFrame, uint8_t * ccDataBuffer, ui
 
 bool wvcc_getPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * pictureType);
 bool wvcc_getPictureOrder(wv_encodedFrame * inputFrame, uint32_t * pictureorder);
+bool wvcc_InitParserCtx(wv_encodedFrame * inputFrame);
+bool wvcc_DelParserCtx(wv_encodedFrame * inputFrame);
+
 #endif
 

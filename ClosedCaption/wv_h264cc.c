@@ -338,8 +338,10 @@ static bool h264_constructCCCNal(const uint8_t * CCData, const uint32_t ccDataLe
 }
 
 /* init parser */
-bool h264_InitParser(wv_encodedFrame * inputFrame)
+bool h264_InitParserCtx(wv_encodedFrame * inputFrame)
 {
+	WV_H264PARSER_st * pstCtx = NULL;
+
 	/* verity input parameters */
 	if (NULL == inputFrame)
 	{
@@ -347,22 +349,25 @@ bool h264_InitParser(wv_encodedFrame * inputFrame)
 		return false;
 	}
 
-	if(NULL != inputFrame)
-	{
-		free(inputFrame->ctx);
-	}
-
-	if(NULL == inputFrame->ctx)
-	{
-		inputFrame->ctx = malloc(sizeof(WV_H264PARSER_st));	
-	}
+	inputFrame->ctx = NULL;
+	pstCtx->isInit = false;
+	pstCtx->sps_id = -1;
+	pstCtx->pps_id = -1;
 	
-
 	return true;
 }
 
+bool h264_InitParserMalloc(WV_H264PARSER_st ** pstCtx)
+{
+	*pstCtx = (WV_H264PARSER_st *)malloc(sizeof(WV_H264PARSER_st));	
+	(*pstCtx)->isInit = false;
+	(*pstCtx)->sps_id = -1;
+	(*pstCtx)->pps_id = -1;
+}
+
+
 /* del parser */
-bool h264_DelParser(wv_encodedFrame * inputFrame)
+bool h264_DelParserCtx(wv_encodedFrame * inputFrame)
 {
 	/* verity input parameters */
 	if (NULL == inputFrame)
@@ -380,7 +385,7 @@ bool h264_DelParser(wv_encodedFrame * inputFrame)
 }
 
 /* get picture type */
-bool  h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
+bool    h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 {
 	int32_t nalOffset = 0;
 	int32_t sliceType = 0;
@@ -438,7 +443,7 @@ bool  h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 }
 
 /* get picture order */
-bool  h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
+bool    h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 {
 	int32_t nalOffset = 0;
 	int32_t pic_order_cnt_lsb = 0;
@@ -449,6 +454,9 @@ bool  h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 	static int32_t PrevPicOrderCntLsb = 0;
 	static int32_t PrevPicOrderCntMsb = 0;
 
+	WV_H264PARSER_st * pstCtx = NULL;
+	WV_PICTURE_TYPE picType = WV_PICTURE_TYPE_UNKNOWN;
+
 	/* verity input parameters */
 	if ((NULL == order) ||
 		(NULL == inputFrame) ||
@@ -458,6 +466,44 @@ bool  h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 		printf("input parameters is invalid!\n");
 		return false;
 	}
+
+
+	/* init context of parser  */
+	if(h264_GetPictureType(inputFrame, &picType))
+	{
+		if(WV_PICTURE_TYPE_I == picType)
+		{
+			/* init parser */
+			if(false == inputFrame->ctxIsInit)
+			{
+				h264_InitParserMalloc(&pstCtx);
+				inputFrame->ctx = pstCtx;
+				inputFrame->ctxIsInit = true;
+			}
+		}
+	}
+	if( false == inputFrame->ctxIsInit  )
+	{
+		printf("ctx is not initialized , can't get order\n");
+		return false;
+	}
+	else
+	{
+		pstCtx = inputFrame->ctx;
+	}
+
+	/* get sps and pps if get I frame  */
+	if(h264_GetPictureType(inputFrame, &picType))
+	{
+		if(WV_PICTURE_TYPE_I == picType)
+		{
+			if (h264_findNal(inputFrame, WV_H264_NAL_SPS, &nalOffset))
+			{
+				Parse_as_seq_param_set(&(pstCtx->sps), &(inputFrame->data[nalOffset]));
+			}
+		}
+	}
+	
 
 	/* find offset first slice */
 	if (h264_findNal(inputFrame, WV_H264_NAL_SLICE, &nalOffset))
@@ -530,8 +576,8 @@ const WV_CC_Handle h264CCHandle =
 	.wvcc_GetPictureDisplayOrder = h264_GetPictureDisplayOrder,
 
     /* ctx */
-    .wvcc_InitFrameCtx = h264_InitParser,
-    .wvcc_DelFrameCtx = h264_DelParser,
+    .wvcc_InitFrameCtx = h264_InitParserCtx,
+    .wvcc_DelFrameCtx = h264_DelParserCtx,
 };
 
 

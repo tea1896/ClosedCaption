@@ -40,4 +40,6 @@ typedef struct wv_h264sps
 
 }WV_H264SPS;
 
+int32_t Parse_as_seq_param_set(WV_H264SPS * sps, uint8_t * m_pSODB);
+
 #endif

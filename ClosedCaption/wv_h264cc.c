@@ -350,9 +350,6 @@ bool h264_InitParserCtx(wv_encodedFrame * inputFrame)
 	}
 
 	inputFrame->ctx = NULL;
-	pstCtx->isInit = false;
-	pstCtx->sps_id = -1;
-	pstCtx->pps_id = -1;
 	
 	return true;
 }
@@ -360,9 +357,10 @@ bool h264_InitParserCtx(wv_encodedFrame * inputFrame)
 bool h264_InitParserMalloc(WV_H264PARSER_st ** pstCtx)
 {
 	*pstCtx = (WV_H264PARSER_st *)malloc(sizeof(WV_H264PARSER_st));	
-	(*pstCtx)->isInit = false;
-	(*pstCtx)->sps_id = -1;
-	(*pstCtx)->pps_id = -1;
+	(*pstCtx)->poc.PicOrderCntMsb = 0;
+	(*pstCtx)->poc.MaxPicOrderCntLsb = 0;
+	(*pstCtx)->poc.PrevPicOrderCntLsb = 0;
+	(*pstCtx)->poc.PrevPicOrderCntMsb = 0;
 }
 
 
@@ -442,12 +440,46 @@ bool    h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type
 	return true;
 }
 
+int32_t h264_CalcPoc(WV_H264POC_st * pstPOC, int32_t pic_order_cnt_lsb)
+{
+	int32_t nRet = -1;
+
+	if(NULL == pstPOC)
+	{
+		printf("invalid parameters!\n");
+		return -1;
+	}
+
+	if ((pic_order_cnt_lsb  <  pstPOC->PrevPicOrderCntLsb) &&
+	    ((pstPOC->PrevPicOrderCntLsb - pic_order_cnt_lsb) >= (pstPOC->MaxPicOrderCntLsb / 2)))	
+	{
+		pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb + pstPOC->MaxPicOrderCntLsb;
+	}
+	else if ((pic_order_cnt_lsb  >  pstPOC->PrevPicOrderCntLsb) &&
+	         ((pic_order_cnt_lsb - pstPOC->PrevPicOrderCntLsb)  >  (pstPOC->MaxPicOrderCntLsb / 2)))	
+	{
+		pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb - pstPOC->MaxPicOrderCntLsb;
+	}
+	else
+	{
+		pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb;
+	}
+
+	nRet = pstPOC->PicOrderCntMsb + pic_order_cnt_lsb;
+
+	pstPOC->PrevPicOrderCntLsb = pic_order_cnt_lsb;
+	pstPOC->PrevPicOrderCntMsb = pstPOC->PicOrderCntMsb;
+	
+	return nRet;
+}
+
 /* get picture order */
-bool    h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
+bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 {
 	int32_t nalOffset = 0;
 	int32_t pic_order_cnt_lsb = 0;
 	int32_t codeNum = 0;
+	int32_t i  = 0;
 	
 	static int32_t PicOrderCntMsb = 0;
 	static int32_t MaxPicOrderCntLsb = 32;
@@ -477,7 +509,7 @@ bool    h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * orde
 			if(false == inputFrame->ctxIsInit)
 			{
 				h264_InitParserMalloc(&pstCtx);
-				inputFrame->ctx = pstCtx;
+				inputFrame->ctx = (uint8_t *)pstCtx;
 				inputFrame->ctxIsInit = true;
 			}
 		}
@@ -508,57 +540,57 @@ bool    h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * orde
 			{
 				Parse_as_pic_param_set(&(pstCtx->pps), &(inputFrame->data[nalOffset]));
 			}
+
+			/* poc */
+			pstCtx->poc.MaxPicOrderCntLsb = 1;
+			for(i=0; i<pstCtx->sps.m_log2_max_poc_cnt; i++)
+			{
+				pstCtx->poc.MaxPicOrderCntLsb *= 2;
+			}
+			//pstCtx->poc.MaxPicOrderCntLsb = pow(2, pstCtx->sps.m_log2_max_poc_cnt);
 		}
 	}
-	
 
-	/* find offset first slice */
-	if (h264_findNal(inputFrame, WV_H264_NAL_SLICE, &nalOffset))
+
+	if(true ==  inputFrame->ctxIsInit )
 	{
-		//printf("find nal slice offset = %d\n", nalOffset);
+		/* find offset first slice */
+		if (h264_findNal(inputFrame, WV_H264_NAL_SLICE, &nalOffset))
+		{
+			//printf("find nal slice offset = %d\n", nalOffset);
+		}
+		else
+		{
+			printf("can't find first slcie offset\n");
+			return false;
+		}
+
+		/* PICTURE_HEADER.PICTURE_CODING_TYPE */
+		WV_H264Rbsp rbsp;
+		rbsp.buf = &(inputFrame->data[nalOffset]);
+		rbsp.bitPosition = rbsp.bytePosition = 0;
+		rbsp.dataLengthInBits = 100; // slice header
+
+		/* firs_mb_in_slice */
+		codeNum = wv_getExpGolobm(&rbsp);
+		/* slice_type */
+		codeNum = wv_getExpGolobm(&rbsp);
+		/* pic_parameter_set_id */
+		codeNum = wv_getExpGolobm(&rbsp);
+		/* frame_num */
+		codeNum = wv_getBit(&rbsp, 4);
+		/* field_pic_flag */
+		codeNum = wv_getBit(&rbsp, 1);
+		/* pic_order_cnt_lst */
+		pic_order_cnt_lsb = wv_getBit(&rbsp, 5);
+
+		*order = h264_CalcPoc(&(pstCtx->poc), pic_order_cnt_lsb);
 	}
 	else
 	{
-		printf("can't find first slcie offset\n");
+		printf("context of parser is not initalized, can't get order\n");
 		return false;
 	}
-
-	/* PICTURE_HEADER.PICTURE_CODING_TYPE */
-	WV_H264Rbsp rbsp;
-	rbsp.buf = &(inputFrame->data[nalOffset]);
-	rbsp.bitPosition = rbsp.bytePosition = 0;
-	rbsp.dataLengthInBits = 100; // slice header
-
-	/* firs_mb_in_slice */
-	codeNum = wv_getExpGolobm(&rbsp);
-	printf("firs_mb_in_slice %d\n", codeNum);
-	/* slice_type */
-	codeNum = wv_getExpGolobm(&rbsp);
-	printf("slice_type %d\n", codeNum);
-	/* pic_parameter_set_id */
-	codeNum = wv_getExpGolobm(&rbsp);
-	/* frame_num */
-	codeNum = wv_getBit(&rbsp, 4);
-	printf("frame_num %d\n", codeNum);
-	/* field_pic_flag */
-	codeNum = wv_getBit(&rbsp, 1);
-	printf("field_pic_flag %d\n", codeNum);
-	/* pic_order_cnt_lst */
-	pic_order_cnt_lsb = wv_getBit(&rbsp, 5);
-
-	if (pic_order_cnt_lsb  <  PrevPicOrderCntLsb &&
-		(PrevPicOrderCntLsb - pic_order_cnt_lsb) >= (MaxPicOrderCntLsb / 2))
-		PicOrderCntMsb = PrevPicOrderCntMsb + MaxPicOrderCntLsb;
-	else if (pic_order_cnt_lsb  >  PrevPicOrderCntLsb &&
-		(pic_order_cnt_lsb - PrevPicOrderCntLsb)  >  (MaxPicOrderCntLsb / 2))
-		PicOrderCntMsb = PrevPicOrderCntMsb - MaxPicOrderCntLsb;
-	else
-		PicOrderCntMsb = PrevPicOrderCntMsb;
-
-	*order = PicOrderCntMsb + pic_order_cnt_lsb;
-
-	PrevPicOrderCntLsb = pic_order_cnt_lsb;
-	PrevPicOrderCntMsb = PicOrderCntMsb;
 
 	return true;
 }

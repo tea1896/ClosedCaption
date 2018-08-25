@@ -10,7 +10,7 @@ typedef struct
 	int32_t sps_id;
 	int32_t pps_id;
 	WV_H264SPS sps;
-	//WV_H264PPS pps;
+	WV_H264PPS pps;
 }WV_H264PARSER_st;
 
 

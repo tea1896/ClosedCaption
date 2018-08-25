@@ -497,9 +497,16 @@ bool    h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * orde
 	{
 		if(WV_PICTURE_TYPE_I == picType)
 		{
+			/* analysis sps */
 			if (h264_findNal(inputFrame, WV_H264_NAL_SPS, &nalOffset))
 			{
 				Parse_as_seq_param_set(&(pstCtx->sps), &(inputFrame->data[nalOffset]));
+			}
+
+			/* analysis pps */
+			if (h264_findNal(inputFrame, WV_H264_NAL_PPS, &nalOffset))
+			{
+				Parse_as_pic_param_set(&(pstCtx->pps), &(inputFrame->data[nalOffset]));
 			}
 		}
 	}

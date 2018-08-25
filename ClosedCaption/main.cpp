@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 {
 	/*  从ts中读取CC并保存到一个二进制文件中 */
 	//getCC("mpeg_720x480.ts", "cc.data"); 
-	getCC("h264_720x480x5994i.ts", "cc.data");
+	getCC("vixs_h264IDR.ts", "cc.data");
 	//expGolobmTest();
 
 	/* 从二进制文件中读取CC，并插入ts流中 */

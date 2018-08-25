@@ -382,12 +382,64 @@ bool h264_DelParserCtx(wv_encodedFrame * inputFrame)
 	return true;
 }
 
+static bool  h264_GetRandomAccess(wv_encodedFrame * inputFrame, int32_t * idr_flag, int32_t * offset)
+{
+	uint32_t start_code = -1;
+	uint8_t *buf_ptr = NULL;
+	uint8_t *buf_end = NULL;
+	uint32_t nal_type = 0;
+
+	if ((NULL == inputFrame) || (NULL == offset) || (NULL == inputFrame->data) || (NULL == idr_flag))
+	{
+		printf("invalid input parameters\n");
+		return false;
+	}
+
+	buf_ptr = inputFrame->data;
+	buf_end = buf_ptr + inputFrame->size;
+
+	*offset = -1;
+	for (;;)
+	{
+		start_code = -1;
+		buf_ptr = h264_find_start_code(buf_ptr, buf_end, &start_code);
+		nal_type = start_code & 0x1F;
+		//h264_printNal(nalu_type);
+
+		if ((WV_H264_NAL_SLICE == nal_type) ||
+			(WV_H264_NAL_IDR_SLICE == nal_type))
+		{
+			if (buf_ptr > inputFrame->data)
+			{
+				*offset = (int32_t)(buf_ptr - inputFrame->data);
+			}
+			break;
+		}
+	}
+
+	if(WV_H264_NAL_IDR_SLICE == nal_type)
+	{
+		*idr_flag = 1;
+	}
+	else
+	{
+		*idr_flag = 0;
+	}
+		
+
+	return ((*offset > 0) ? true : false);
+}
+
+
+
+
 /* get picture type */
-bool    h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
+bool   h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 {
 	int32_t nalOffset = 0;
 	int32_t sliceType = 0;
 	int32_t codeNum = 0;
+	int32_t idrFlag = 0;
 
 	/* verity input parameters */
 	if ((NULL == type) ||
@@ -400,7 +452,7 @@ bool    h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type
 	}
 
 	/* find offset first slice */
-	if (h264_findNal(inputFrame, WV_H264_NAL_SLICE, &nalOffset))
+	if (h264_GetRandomAccess(inputFrame, &idrFlag, &nalOffset))
 	{
 		//printf("find nal slice offset = %d\n", nalOffset);
 	}
@@ -422,8 +474,15 @@ bool    h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type
 	sliceType = wv_getExpGolobm(&rbsp);
 	switch (sliceType)
 	{
-		case 7:
-			*type = WV_PICTURE_TYPE_I;
+		case 7:			
+			if(0x1 == idrFlag)
+			{
+				*type = WV_PICTURE_TYPE_IDR;	
+			}
+			else
+			{
+				*type = WV_PICTURE_TYPE_I;
+			}
 			break;
 		case 5:
 			*type = WV_PICTURE_TYPE_P;
@@ -480,12 +539,8 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 	int32_t pic_order_cnt_lsb = 0;
 	int32_t codeNum = 0;
 	int32_t i  = 0;
+	int32_t idrFlag = 0;
 	
-	static int32_t PicOrderCntMsb = 0;
-	static int32_t MaxPicOrderCntLsb = 32;
-	static int32_t PrevPicOrderCntLsb = 0;
-	static int32_t PrevPicOrderCntMsb = 0;
-
 	WV_H264PARSER_st * pstCtx = NULL;
 	WV_PICTURE_TYPE picType = WV_PICTURE_TYPE_UNKNOWN;
 
@@ -527,7 +582,8 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 	/* get sps and pps if get I frame  */
 	if(h264_GetPictureType(inputFrame, &picType))
 	{
-		if(WV_PICTURE_TYPE_I == picType)
+		if((WV_PICTURE_TYPE_I == picType) || 
+		   (WV_PICTURE_TYPE_IDR == picType))
 		{
 			/* analysis sps */
 			if (h264_findNal(inputFrame, WV_H264_NAL_SPS, &nalOffset))
@@ -542,12 +598,22 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 			}
 
 			/* poc */
+			//pstCtx->poc.MaxPicOrderCntLsb = pow(2, pstCtx->sps.m_log2_max_poc_cnt);
 			pstCtx->poc.MaxPicOrderCntLsb = 1;
 			for(i=0; i<pstCtx->sps.m_log2_max_poc_cnt; i++)
 			{
 				pstCtx->poc.MaxPicOrderCntLsb *= 2;
 			}
-			//pstCtx->poc.MaxPicOrderCntLsb = pow(2, pstCtx->sps.m_log2_max_poc_cnt);
+			
+			if(WV_PICTURE_TYPE_IDR == picType)
+			{
+				idrFlag = 1;
+			}
+			else
+			{
+				idrFlag = 0;
+			}
+			
 		}
 	}
 
@@ -584,7 +650,7 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 		/* pic_order_cnt_lst */
 		pic_order_cnt_lsb = wv_getBit(&rbsp, 5);
 
-		*order = h264_CalcPoc(&(pstCtx->poc), pic_order_cnt_lsb);
+		*order = h264_CalcPoc(&(pstCtx->poc), idrFlag, pic_order_cnt_lsb);
 	}
 	else
 	{
@@ -594,8 +660,6 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 
 	return true;
 }
-
-
 
 /* declare closedcaption hanlder for mpeg2 video  */
 const WV_CC_Handle h264CCHandle =

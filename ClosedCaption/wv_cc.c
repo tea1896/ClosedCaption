@@ -202,6 +202,9 @@ bool wvcc_getPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * picture
 		case WV_PICTURE_TYPE_P:
 			printf("### P picture!\n");
 			break;
+		case WV_PICTURE_TYPE_IDR:
+			printf("### IDR picture!\n");
+			break;
 		default:
 			printf("Unknown picture!\n");
 			break;

@@ -2,6 +2,7 @@
 #include "wv_h264cc.h"
 #include "wv_expGolobm.h"
 #include "wv_h264parser.h"
+#include "wv_h264sliceheader.h"
 
 /*****************************************************************************
 Function:     h264_printNal
@@ -65,7 +66,7 @@ static const uint8_t * h264_find_start_code(const uint8_t * p, const uint8_t *en
 	}
 
 	if (p >= end)
-		return end;
+		return NULL;
 
 	for (i = 0; i < 3; i++) {
 		uint32_t tmp = *state << 8;
@@ -109,7 +110,7 @@ static bool h264_findNal(wv_encodedFrame * inputFrame, int32_t nalCode, int32_t 
 	uint32_t start_code = -1;
 	uint8_t *buf_ptr = NULL;
 	uint8_t *buf_end = NULL;
-	uint32_t nalu_type = 0;
+	uint32_t nal_type = 0;
 
 	if ((NULL == inputFrame) || (NULL == offset))
 	{
@@ -125,10 +126,15 @@ static bool h264_findNal(wv_encodedFrame * inputFrame, int32_t nalCode, int32_t 
 	{
 		start_code = -1;
 		buf_ptr = h264_find_start_code(buf_ptr, buf_end, &start_code);
-		nalu_type = start_code & 0x1F;
+		if(NULL == buf_ptr)
+		{
+			printf("can't find nal %d\n", nalCode);
+			return false;
+		}
+		nal_type = start_code & 0x1F;
 		//h264_printNal(nalu_type);
 
-		if (nalCode == nalu_type)
+		if (nalCode == nal_type)
 		{
 			if (buf_ptr > inputFrame->data)
 			{
@@ -337,7 +343,17 @@ static bool h264_constructCCCNal(const uint8_t * CCData, const uint32_t ccDataLe
 	return true;
 }
 
-/* init parser */
+/*****************************************************************************
+Function:     h264_InitParserCtx
+Description:  init context of parser
+Input:
+inputFrame    - encoded h264 frame
+Return:
+true - success
+false - failed
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool h264_InitParserCtx(wv_encodedFrame * inputFrame)
 {
 	WV_H264PARSER_st * pstCtx = NULL;
@@ -354,6 +370,17 @@ bool h264_InitParserCtx(wv_encodedFrame * inputFrame)
 	return true;
 }
 
+/*****************************************************************************
+Function:     h264_InitParserMalloc
+Description:  malloc context of h264 parser
+Input:
+pstCtx        - pointer to parser
+Return:
+true - success
+false - failed
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool h264_InitParserMalloc(WV_H264PARSER_st ** pstCtx)
 {
 	*pstCtx = (WV_H264PARSER_st *)malloc(sizeof(WV_H264PARSER_st));	
@@ -364,7 +391,17 @@ bool h264_InitParserMalloc(WV_H264PARSER_st ** pstCtx)
 }
 
 
-/* del parser */
+/*****************************************************************************
+Function:     h264_DelParserCtx
+Description:  free context of h264 parser
+Input:
+inputFrame    - encoded h264 frame
+Return:
+true - success
+false - failed
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool h264_DelParserCtx(wv_encodedFrame * inputFrame)
 {
 	/* verity input parameters */
@@ -382,61 +419,102 @@ bool h264_DelParserCtx(wv_encodedFrame * inputFrame)
 	return true;
 }
 
-static bool  h264_GetRandomAccess(wv_encodedFrame * inputFrame, int32_t * idr_flag, int32_t * offset)
+/*****************************************************************************
+Function:     h264_GetPicNalInfo
+Description:  get naltype and slicetype from nal-unit
+Input:
+inputFrame     - encoded h264 frame
+Output:
+pic_nalType    - NAL type of nal-unit
+pic_sliceType  - slice type ( I / P / B)
+pic_offset     - offset of encoded slice in encoded stream
+Return:
+true - success
+false - failed
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
+static bool  h264_GetPicNalInfo(wv_encodedFrame * inputFrame, int32_t * pic_nalType, int32_t * pic_sliceType, int32_t * pic_offset)
 {
 	uint32_t start_code = -1;
 	uint8_t *buf_ptr = NULL;
 	uint8_t *buf_end = NULL;
 	uint32_t nal_type = 0;
+	uint32_t nal_offset = 0;
+	int32_t codeNum = 0;
 
-	if ((NULL == inputFrame) || (NULL == offset) || (NULL == inputFrame->data) || (NULL == idr_flag))
+	if ((NULL == inputFrame) || (NULL == inputFrame->data) || (NULL == inputFrame->data))
 	{
-		printf("invalid input parameters\n");
+		printf("[%s]%d:invalid parameters!\n", __func__, __LINE__);
 		return false;
 	}
 
 	buf_ptr = inputFrame->data;
 	buf_end = buf_ptr + inputFrame->size;
 
-	*offset = -1;
+	/* find picture nal */
+	nal_offset = -1;
 	for (;;)
 	{
 		start_code = -1;
 		buf_ptr = h264_find_start_code(buf_ptr, buf_end, &start_code);
 		nal_type = start_code & 0x1F;
-		//h264_printNal(nalu_type);
 
 		if ((WV_H264_NAL_SLICE == nal_type) ||
 			(WV_H264_NAL_IDR_SLICE == nal_type))
 		{
 			if (buf_ptr > inputFrame->data)
 			{
-				*offset = (int32_t)(buf_ptr - inputFrame->data);
+				nal_offset = (int32_t)(buf_ptr - inputFrame->data);
 			}
 			break;
 		}
 	}
 
-	if(WV_H264_NAL_IDR_SLICE == nal_type)
+	/* get nal type */
+	if(NULL != pic_nalType)
 	{
-		*idr_flag = 1;
+		*pic_nalType = nal_type;
 	}
-	else
+
+	/* get slice type */
+	if(NULL != pic_sliceType)
 	{
-		*idr_flag = 0;
+		WV_H264Rbsp rbsp;
+		rbsp.buf = &(inputFrame->data[nal_offset]);
+		rbsp.bitPosition = rbsp.bytePosition = 0;
+		rbsp.dataLengthInBits = 22; // slice header	
+		codeNum = wv_getExpGolobm(&rbsp); /* firs_mb_in_slice */	
+		*pic_sliceType = wv_getExpGolobm(&rbsp); /* slice_type */
+	}
+	
+	/* offset of picture nal */
+	if(NULL != pic_offset)
+	{
+		*pic_offset = nal_offset;
 	}
 		
-
-	return ((*offset > 0) ? true : false);
+	return ((nal_offset > 0) ? true : false);
 }
 
 
-
-
-/* get picture type */
-bool   h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
+/*****************************************************************************
+Function:     h264_GetPictureType
+Description:  get picture type from encoded h264 frame
+Input:
+inputFrame     - encoded h264 frame
+Output:
+type           - picture type ( I / P / B)
+Return:
+true - success
+false - failed
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
+bool h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 {
 	int32_t nalOffset = 0;
+	int32_t nalType = 0;
 	int32_t sliceType = 0;
 	int32_t codeNum = 0;
 	int32_t idrFlag = 0;
@@ -452,7 +530,7 @@ bool   h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 	}
 
 	/* find offset first slice */
-	if (h264_GetRandomAccess(inputFrame, &idrFlag, &nalOffset))
+	if (h264_GetPicNalInfo(inputFrame, &nalType, &sliceType, NULL))
 	{
 		//printf("find nal slice offset = %d\n", nalOffset);
 	}
@@ -463,19 +541,10 @@ bool   h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 	}
 
 	/* PICTURE_HEADER.PICTURE_CODING_TYPE */
-	WV_H264Rbsp rbsp;
-	rbsp.buf = &(inputFrame->data[nalOffset]);
-	rbsp.bitPosition = rbsp.bytePosition = 0;
-	rbsp.dataLengthInBits = 22; // slice header
-
-	/* firs_mb_in_slice */
-	codeNum = wv_getExpGolobm(&rbsp);
-	/* slice_type */
-	sliceType = wv_getExpGolobm(&rbsp);
 	switch (sliceType)
 	{
-		case 7:			
-			if(0x1 == idrFlag)
+		case WV_H264_I_SLICE:			
+			if(WV_H264_NAL_IDR_SLICE == nalType)
 			{
 				*type = WV_PICTURE_TYPE_IDR;	
 			}
@@ -484,10 +553,10 @@ bool   h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 				*type = WV_PICTURE_TYPE_I;
 			}
 			break;
-		case 5:
+		case WV_H264_P_SLICE:
 			*type = WV_PICTURE_TYPE_P;
 			break;
-		case 6:
+		case WV_H264_B_SLICE:
 			*type = WV_PICTURE_TYPE_B;
 			break;
 		default:
@@ -499,47 +568,86 @@ bool   h264_GetPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * type)
 	return true;
 }
 
-int32_t h264_CalcPoc(WV_H264POC_st * pstPOC, int32_t pic_order_cnt_lsb)
+
+/*****************************************************************************
+Function:     h264_CalcPoc
+Description:  calculae POC of h264 frame
+Input:
+pstPOC              - pointer of POC struct
+idr_flag            - idr flag (1 ; idr frame  0: non_idr frame)
+pic_order_cnt_lsb   - pic_order_cnt_lsb of slice header
+Output:
+                    - none
+Return:
+					- POC of picture
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
+static int32_t h264_CalcPoc(WV_H264POC_st * pstPOC, int32_t idr_flag, int32_t pic_order_cnt_lsb)
 {
 	int32_t nRet = -1;
 
 	if(NULL == pstPOC)
 	{
-		printf("invalid parameters!\n");
+		printf("[%s]%d:invalid parameters!\n", __func__, __LINE__);
 		return -1;
 	}
 
-	if ((pic_order_cnt_lsb  <  pstPOC->PrevPicOrderCntLsb) &&
-	    ((pstPOC->PrevPicOrderCntLsb - pic_order_cnt_lsb) >= (pstPOC->MaxPicOrderCntLsb / 2)))	
+	if(0 == idr_flag)
 	{
-		pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb + pstPOC->MaxPicOrderCntLsb;
-	}
-	else if ((pic_order_cnt_lsb  >  pstPOC->PrevPicOrderCntLsb) &&
-	         ((pic_order_cnt_lsb - pstPOC->PrevPicOrderCntLsb)  >  (pstPOC->MaxPicOrderCntLsb / 2)))	
-	{
-		pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb - pstPOC->MaxPicOrderCntLsb;
+		if ((pic_order_cnt_lsb  <  pstPOC->PrevPicOrderCntLsb) &&
+		    ((pstPOC->PrevPicOrderCntLsb - pic_order_cnt_lsb) >= (pstPOC->MaxPicOrderCntLsb / 2)))	
+		{
+			pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb + pstPOC->MaxPicOrderCntLsb;
+		}
+		else if ((pic_order_cnt_lsb  >  pstPOC->PrevPicOrderCntLsb) &&
+		         ((pic_order_cnt_lsb - pstPOC->PrevPicOrderCntLsb)  >  (pstPOC->MaxPicOrderCntLsb / 2)))	
+		{
+			pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb - pstPOC->MaxPicOrderCntLsb;
+		}
+		else
+		{
+			pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb;
+		}
+
+		nRet = pstPOC->PicOrderCntMsb + pic_order_cnt_lsb;
+
+		pstPOC->PrevPicOrderCntLsb = pic_order_cnt_lsb;
+		pstPOC->PrevPicOrderCntMsb = pstPOC->PicOrderCntMsb;
 	}
 	else
 	{
-		pstPOC->PicOrderCntMsb = pstPOC->PrevPicOrderCntMsb;
+		nRet = 0;
+		pstPOC->PrevPicOrderCntLsb = 0;
+		pstPOC->PrevPicOrderCntMsb = 0;	
 	}
-
-	nRet = pstPOC->PicOrderCntMsb + pic_order_cnt_lsb;
-
-	pstPOC->PrevPicOrderCntLsb = pic_order_cnt_lsb;
-	pstPOC->PrevPicOrderCntMsb = pstPOC->PicOrderCntMsb;
 	
 	return nRet;
 }
 
-/* get picture order */
+/*****************************************************************************
+Function:     h264_GetPictureDisplayOrder
+Description:  get display order of  encoded h264 frame
+Input:
+inputFrame     - encoded h264 frame
+Output:
+order          - display order
+Return:
+true - success
+false - failed
+Author:       dadi.zeng 2018/08/26
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 {
 	int32_t nalOffset = 0;
+	int32_t picNalOffset = 0;
 	int32_t pic_order_cnt_lsb = 0;
 	int32_t codeNum = 0;
 	int32_t i  = 0;
 	int32_t idrFlag = 0;
+	int32_t nalType = 0;
+	int32_t sliceType = 0;
 	
 	WV_H264PARSER_st * pstCtx = NULL;
 	WV_PICTURE_TYPE picType = WV_PICTURE_TYPE_UNKNOWN;
@@ -550,107 +658,86 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 		(NULL == inputFrame->data) ||
 		(inputFrame->size <= 0))
 	{
-		printf("input parameters is invalid!\n");
+		printf("[%s]%d:invalid parameters!\n", __func__, __LINE__);
 		return false;
 	}
 
 
 	/* init context of parser  */
-	if(h264_GetPictureType(inputFrame, &picType))
+	if(!h264_GetPicNalInfo(inputFrame, &nalType, &sliceType, &picNalOffset))
 	{
-		if(WV_PICTURE_TYPE_I == picType)
-		{
-			/* init parser */
-			if(false == inputFrame->ctxIsInit)
-			{
-				h264_InitParserMalloc(&pstCtx);
-				inputFrame->ctx = (uint8_t *)pstCtx;
-				inputFrame->ctxIsInit = true;
-			}
-		}
-	}
-	if( false == inputFrame->ctxIsInit  )
-	{
-		printf("ctx is not initialized , can't get order\n");
+		printf("can't get picture type information!\n");
 		return false;
+	}
+
+	if(WV_H264_I_SLICE == sliceType)
+	{
+		/* init parser */
+		if(false == inputFrame->ctxIsInit)
+		{
+			h264_InitParserMalloc(&pstCtx);
+			inputFrame->ctx = (uint8_t *)pstCtx;
+			inputFrame->ctxIsInit = true;
+		}
+		else
+		{
+			pstCtx = inputFrame->ctx;
+		}
+
+		/* get sps and pps if get I / IDR frame  */				
+		if (h264_findNal(inputFrame, WV_H264_NAL_SPS, &nalOffset))
+		{
+			/* analysis sps */
+			Parse_as_seq_param_set(&(pstCtx->sps), &(inputFrame->data[nalOffset]));
+		}
+		else
+		{
+			printf("can't find sps\n");
+		}
+		
+		if (h264_findNal(inputFrame, WV_H264_NAL_PPS, &nalOffset))
+		{
+			/* analysis pps */
+			Parse_as_pic_param_set(&(pstCtx->pps), &(inputFrame->data[nalOffset]));
+		}
+		else
+		{
+			printf("can't find pps\n");
+		}
+
+		/* poc */
+		//pstCtx->poc.MaxPicOrderCntLsb = pow(2, pstCtx->sps.m_log2_max_poc_cnt);
+		pstCtx->poc.MaxPicOrderCntLsb = 1;
+		for(i=0; i<pstCtx->sps.m_log2_max_poc_cnt; i++)
+		{
+			pstCtx->poc.MaxPicOrderCntLsb *= 2;
+		}		
 	}
 	else
 	{
 		pstCtx = inputFrame->ctx;
 	}
 
-	/* get sps and pps if get I frame  */
-	if(h264_GetPictureType(inputFrame, &picType))
+	if(WV_H264_NAL_IDR_SLICE == nalType)
 	{
-		if((WV_PICTURE_TYPE_I == picType) || 
-		   (WV_PICTURE_TYPE_IDR == picType))
-		{
-			/* analysis sps */
-			if (h264_findNal(inputFrame, WV_H264_NAL_SPS, &nalOffset))
-			{
-				Parse_as_seq_param_set(&(pstCtx->sps), &(inputFrame->data[nalOffset]));
-			}
-
-			/* analysis pps */
-			if (h264_findNal(inputFrame, WV_H264_NAL_PPS, &nalOffset))
-			{
-				Parse_as_pic_param_set(&(pstCtx->pps), &(inputFrame->data[nalOffset]));
-			}
-
-			/* poc */
-			//pstCtx->poc.MaxPicOrderCntLsb = pow(2, pstCtx->sps.m_log2_max_poc_cnt);
-			pstCtx->poc.MaxPicOrderCntLsb = 1;
-			for(i=0; i<pstCtx->sps.m_log2_max_poc_cnt; i++)
-			{
-				pstCtx->poc.MaxPicOrderCntLsb *= 2;
-			}
-			
-			if(WV_PICTURE_TYPE_IDR == picType)
-			{
-				idrFlag = 1;
-			}
-			else
-			{
-				idrFlag = 0;
-			}
-			
-		}
+		idrFlag = 1;
+	}
+	else
+	{
+		idrFlag = 0;
+	}
+	
+	if( false == inputFrame->ctxIsInit  )
+	{
+		printf("ctx is not initialized , can't get order\n");
+		return false;
 	}
 
 
-	if(true ==  inputFrame->ctxIsInit )
+	if(true == inputFrame->ctxIsInit )
 	{
-		/* find offset first slice */
-		if (h264_findNal(inputFrame, WV_H264_NAL_SLICE, &nalOffset))
-		{
-			//printf("find nal slice offset = %d\n", nalOffset);
-		}
-		else
-		{
-			printf("can't find first slcie offset\n");
-			return false;
-		}
-
-		/* PICTURE_HEADER.PICTURE_CODING_TYPE */
-		WV_H264Rbsp rbsp;
-		rbsp.buf = &(inputFrame->data[nalOffset]);
-		rbsp.bitPosition = rbsp.bytePosition = 0;
-		rbsp.dataLengthInBits = 100; // slice header
-
-		/* firs_mb_in_slice */
-		codeNum = wv_getExpGolobm(&rbsp);
-		/* slice_type */
-		codeNum = wv_getExpGolobm(&rbsp);
-		/* pic_parameter_set_id */
-		codeNum = wv_getExpGolobm(&rbsp);
-		/* frame_num */
-		codeNum = wv_getBit(&rbsp, 4);
-		/* field_pic_flag */
-		codeNum = wv_getBit(&rbsp, 1);
-		/* pic_order_cnt_lst */
-		pic_order_cnt_lsb = wv_getBit(&rbsp, 5);
-
-		*order = h264_CalcPoc(&(pstCtx->poc), idrFlag, pic_order_cnt_lsb);
+		Parse_as_pic_nal(&(pstCtx->sliceHeader), &(pstCtx->sps), &(pstCtx->pps), nalType, &(inputFrame->data[picNalOffset]));
+		*order = h264_CalcPoc(&(pstCtx->poc), idrFlag, pstCtx->sliceHeader.m_poc);
 	}
 	else
 	{

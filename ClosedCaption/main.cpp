@@ -281,16 +281,12 @@ end:
 
 int main(int argc, char **argv)
 {
-	/*  从ts中读取CC并保存到一个二进制文件中 */
+	/*  get closed caption data and save it to file */
 	//getCC("mpeg_720x480.ts", "cc.data"); 
 	getCC("vixs_h264IDR.ts", "cc.data");
-	//expGolobmTest();
-
-	/* 从二进制文件中读取CC，并插入ts流中 */
+	
+	/* read closed caption from a file and insert it to encoded frame */
 	//insertCC("mpeg_720x480x5994i_nocc.ts", "mepg_insertcc.ts", "cc.data");
-
-	/*  从ts中读取CC并保存到一个二进制文件中 */
-	//getCC("h264_720x480x5994i.ts", "cc.data");
 
 	system("pause");
 

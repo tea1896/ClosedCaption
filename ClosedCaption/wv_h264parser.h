@@ -3,6 +3,7 @@
 
 #include "wv_h264sps.h"
 #include "wv_h264pps.h"
+#include "wv_h264sliceheader.h"
 
 typedef struct
 {
@@ -18,6 +19,7 @@ typedef struct
 	WV_H264POC_st poc;
 	WV_H264SPS sps;
 	WV_H264PPS pps;	
+	WV_H264SLiceHeader sliceHeader;
 }WV_H264PARSER_st;
 
 

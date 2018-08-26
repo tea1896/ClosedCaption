@@ -155,8 +155,7 @@
     <ClCompile Include="wv_ffmpeg4cc.c" />
     <ClCompile Include="wv_h264bits.c" />
     <ClCompile Include="wv_h264cc.c" />
-    <ClCompile Include="wv_h264nal.c" />
-    <ClCompile Include="wv_h264parser.c" />
+    <ClCompile Include="wv_h264sliceheader.c" />
     <ClCompile Include="wv_h264pps.c" />
     <ClCompile Include="wv_h264sps.c" />
   </ItemGroup>
@@ -167,8 +166,8 @@
     <ClInclude Include="wv_ffmpeg4cc.h" />
     <ClInclude Include="wv_h264Bits.h" />
     <ClInclude Include="wv_h264cc.h" />
-    <ClInclude Include="wv_h264nal.h" />
     <ClInclude Include="wv_h264parser.h" />
+    <ClInclude Include="wv_h264sliceheader.h" />
     <ClInclude Include="wv_h264pps.h" />
     <ClInclude Include="wv_h264sps.h" />
   </ItemGroup>

@@ -71,10 +71,64 @@ Modify:       xxx / 20xx/xx/xx
 *****************************************************************************/
 bool wvcc_insertCCContent(wv_encodedFrame * pstFrame, uint8_t * ccDataBuffer, uint32_t ccDataLen);
 
-
+/*****************************************************************************
+Function:     wvcc_getPictureType
+Description:  Get picture type from encoded frame
+Input:        
+	pstFrame     -   encoded picture
+Output:
+    pictureType  - picture type
+Return:       
+	true - success
+	false - failed
+Author:       dadi.zeng 2018/07/15
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool wvcc_getPictureType(wv_encodedFrame * inputFrame, WV_PICTURE_TYPE * pictureType);
+
+/*****************************************************************************
+Function:     wvcc_getPictureOrder
+Description:  Get display order from encoded frame
+Input:
+	pstFrame     - encoded picture
+Output:
+	pictureType  - display order
+Return:
+	true		 - success
+	false        - failed
+Author:       dadi.zeng 2018/07/15
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool wvcc_getPictureOrder(wv_encodedFrame * inputFrame, uint32_t * pictureorder);
+
+/*****************************************************************************
+Function:     wvcc_InitParserCtx
+Description:  Initialize context of parser 
+Input:
+	pstFrame     - encoded picture
+Output:
+	None
+Return:
+	true		 - success
+	false        - failed
+Author:       dadi.zeng 2018/07/15
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool wvcc_InitParserCtx(wv_encodedFrame * inputFrame);
+
+/*****************************************************************************
+Function:     wvcc_DelParserCtx
+Description:  Delete context of parser
+Input:
+	pstFrame     - encoded picture
+Output:
+	None
+Return:
+	true		 - success
+	false        - failed
+Author:       dadi.zeng 2018/07/15
+Modify:       xxx / 20xx/xx/xx
+*****************************************************************************/
 bool wvcc_DelParserCtx(wv_encodedFrame * inputFrame);
 
 #endif

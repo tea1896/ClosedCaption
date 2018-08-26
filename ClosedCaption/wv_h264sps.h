@@ -13,7 +13,7 @@ typedef struct wv_h264sps
 	uint32_t  m_sps_id;
 
 	// for uncommon profile...
-	uint32_t   m_chroma_format_idc;
+	uint32_t  m_chroma_format_idc;
 	bool      m_separate_colour_plane_flag;
 	uint32_t  m_bit_depth_luma;
 	uint32_t  m_bit_depth_chroma;

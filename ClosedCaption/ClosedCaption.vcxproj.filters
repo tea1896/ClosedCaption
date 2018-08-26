@@ -24,12 +24,6 @@
     <ClCompile Include="wv_h264pps.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="wv_h264parser.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="wv_h264nal.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="wv_h264cc.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -48,18 +42,15 @@
     <ClCompile Include="mp2cc.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="wv_h264sliceheader.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="wv_h264sps.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="wv_h264pps.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="wv_h264parser.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="wv_h264nal.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="wv_h264cc.h">
@@ -78,6 +69,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="mp2cc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264sliceheader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wv_h264parser.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

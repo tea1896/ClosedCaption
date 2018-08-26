@@ -3,6 +3,8 @@
 
 #include "wv_cc.h"
 
+#define MAX_H264_NAL_NUM 256
+
 /* NAL unit types */
 enum {
 	WV_H264_NAL_SLICE = 1,
@@ -19,6 +21,14 @@ enum {
 	WV_H264_NAL_FILLER_DATA = 12,
 	WV_H264_NAL_SPS_EXT = 13,
 	WV_H264_NAL_AUXILIARY_SLICE = 19,
+};
+
+/* SLICE unit types */
+enum {
+	WV_H264_UNKNOWN_SLICE = 1,
+	WV_H264_I_SLICE = 7,
+	WV_H264_P_SLICE = 5,
+	WV_H264_B_SLICE = 6,
 };
 
 

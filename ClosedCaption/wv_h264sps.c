@@ -35,6 +35,7 @@ int32_t Parse_as_seq_param_set(WV_H264SPS * sps, uint8_t * m_pSODB)
 	uint8_t  * bitPosition = &sodbBitPosition;
 	uint32_t * bypePosition = &sodbBypePosition;
 	uint32_t flags = 0;
+	uint32_t idx = 0;
 
 	profile_idc = m_pSODB[0];
 	level_idc = m_pSODB[2];
@@ -91,7 +92,7 @@ int32_t Parse_as_seq_param_set(WV_H264SPS * sps, uint8_t * m_pSODB)
 	flags |= (direct_8x8_inference_flag << 1);
 	if (frame_cropping_flag)
 	{
-		for (int idx = 0; idx < 4; idx++)
+		for (idx = 0; idx < 4; idx++)
 		{
 			frame_crop_offset[idx] = Get_uev_code_num(m_pSODB, bypePosition, bitPosition);
 		}
@@ -127,7 +128,7 @@ int32_t Parse_as_seq_param_set(WV_H264SPS * sps, uint8_t * m_pSODB)
 
 	if (frame_cropping_flag)
 	{
-		for (int idx = 0; idx < 4; idx++)
+		for (idx = 0; idx < 4; idx++)
 		{
 			sps->m_frame_crop_offset[idx] = frame_crop_offset[idx];
 		}

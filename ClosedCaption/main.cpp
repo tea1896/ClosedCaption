@@ -100,7 +100,6 @@ end:
 	wvcc_DelParserCtx(&inputFrame);
 	avformat_close_input(&ifmt_ctx);
 	out.close();
-	//system("pause");
 	return 0;
 }
 
@@ -272,8 +271,6 @@ end:
 		//fprintf(stderr, "Error occurred: %s\n", av_err2str(ret));
 		return 1;
 	}
-
-	//system("pause");
 
 	return 0;
 }

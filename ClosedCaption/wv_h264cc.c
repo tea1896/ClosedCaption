@@ -443,7 +443,7 @@ static bool  h264_GetPicNalInfo(wv_encodedFrame * inputFrame, int32_t * pic_nalT
 	uint32_t nal_offset = 0;
 	int32_t codeNum = 0;
 
-	if ((NULL == inputFrame) || (NULL == inputFrame->data) || (NULL == inputFrame->data))
+	if ((NULL == inputFrame) || (NULL == inputFrame->data))
 	{
 		printf("[%s]%d:invalid parameters!\n", __func__, __LINE__);
 		return false;
@@ -663,16 +663,17 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 	}
 
 
-	/* init context of parser  */
+	/* get picture information  */
 	if(!h264_GetPicNalInfo(inputFrame, &nalType, &sliceType, &picNalOffset))
 	{
 		printf("can't get picture type information!\n");
 		return false;
 	}
 
+	/* need to analysis sps or pps when capturing I frame */
 	if(WV_H264_I_SLICE == sliceType)
 	{
-		/* init parser */
+		/* initialize parser when first get I/IDR frame */
 		if(false == inputFrame->ctxIsInit)
 		{
 			h264_InitParserMalloc(&pstCtx);
@@ -687,7 +688,7 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 		/* get sps and pps if get I / IDR frame  */				
 		if (h264_findNal(inputFrame, WV_H264_NAL_SPS, &nalOffset))
 		{
-			/* analysis sps */
+			/* analyze sps */
 			Parse_as_seq_param_set(&(pstCtx->sps), &(inputFrame->data[nalOffset]));
 		}
 		else
@@ -697,7 +698,7 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 		
 		if (h264_findNal(inputFrame, WV_H264_NAL_PPS, &nalOffset))
 		{
-			/* analysis pps */
+			/* analyze pps */
 			Parse_as_pic_param_set(&(pstCtx->pps), &(inputFrame->data[nalOffset]));
 		}
 		else
@@ -733,7 +734,7 @@ bool h264_GetPictureDisplayOrder(wv_encodedFrame * inputFrame, int32_t * order)
 		return false;
 	}
 
-
+	/* calculate the POR of encoded picture */
 	if(true == inputFrame->ctxIsInit )
 	{
 		Parse_as_pic_nal(&(pstCtx->sliceHeader), &(pstCtx->sps), &(pstCtx->pps), nalType, &(inputFrame->data[picNalOffset]));
